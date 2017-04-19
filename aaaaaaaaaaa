@@ -1,0 +1,252 @@
+Rectangle
+    {
+        id: audio
+        objectName: "item"
+        width: 640
+        height: 480
+        visible: false
+        color: "red"
+
+        Image {
+
+            width: audio.width
+            height: audio.height
+            source: "qrc:/imageaudio/music_background.jpg"
+        }
+        ColumnLayout
+        {
+            id: column
+            objectName: "column"
+            anchors.margins: 9
+            anchors.fill: parent
+
+            Label
+            {
+                id: infoLabel
+
+                elide: Qt.ElideLeft
+                verticalAlignment: Qt.AlignCenter
+                Layout.minimumHeight: infoLabel.implicitHeight
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+            }
+            // lay out music
+            RowLayout
+            {
+                id: row
+                objectName: "row"
+                anchors.centerIn: parent/4
+//previous
+                ToolButton
+                {
+                    id: playingButon
+                    objectName: "playingButton"
+                    visible: false
+                    Layout.preferredWidth: previousButon.implicitHeight
+                    iconSource: "qrc:/imageaudio/media-pause-32.png"
+                    onClicked:
+                    {
+                       hMIEventController.HMIEvent("playing")
+                        console.log("playingClicked")
+                    }
+                }
+
+//play
+                ToolButton
+                {
+                    id: playButton
+                    objectName: "playButton"
+                    Layout.preferredWidth: playButton.implicitHeight
+                    iconSource: "qrc:/imageaudio/media-play-32.png"
+                    visible: true
+                    MouseArea
+                    {
+                        id: mouseArea
+                        anchors.fill: parent
+                        onClicked:
+                        {
+                           hMIEventController.HMIEvent("play")
+                            console.log("playMusicClicked")
+                        }
+                    }
+                    Connections
+                    {
+                        target: hMIEventController
+                        onPlayed:
+                        {
+
+                            console.log("dang choi nhac ")
+                            playingButon.visible =! playingButon.visible
+                            playButton.visible=! playButton.visible
+                        }
+                    }
+                }
+//stop
+                ToolButton
+                {
+                    id: stopButton
+                     objectName: "stopButton"
+                    Layout.preferredWidth: stopButton.implicitHeight
+                    iconSource: "qrc:/imageaudio/media-stop-32.png"
+                    onClicked:
+                    {
+                        hMIEventController.HMIEvent("stop")
+
+                        console.log("StopMusicClicked")
+//                        stopButton.visible =! stopButton.visible
+                    }
+                    Connections
+                    {
+                        target: hMIEventController
+                        onStopped:
+                        {
+                            console.log("dang stop nhac ")
+                          playingButon.visible =! playingButon.visible
+                        }
+                    }
+                }
+//next
+                ToolButton
+                {
+                    id:nextButton
+                    tooltip: qsTr("Next")
+                    iconSource: "qrc:/imageaudio/next-32.png"
+                    onClicked:
+                    {
+                        hMIEventController.HMIEvent("next")
+                        console.log("nextClicked")
+                    }
+                    Connections
+                    {
+                        target: hMIEventController
+                        onNexted:
+                        {
+                            console.log("dang next nhac ")
+                          playingButon.visible =! playingButon.visible
+                        }
+                    }
+                }
+
+            }
+            RowLayout
+            {
+                id: rowLayout2
+                Slider
+                {
+                    id: positionSlider
+                    Layout.minimumWidth: 75
+                    Layout.fillWidth: true
+
+                }
+            }
+
+            ColumnLayout
+            {
+                id: playlist
+
+                ScrollView
+                {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    flickableItem.interactive: true
+
+                    ListView
+                    {
+                        id: playlistView
+                        anchors.fill: parent
+                        model: playlistModel
+                        delegate: playlistDelegate
+    //                    delegate: PlaylistDelegate {  }
+                        highlight: playlistHighlight
+                    }
+                }
+                RowLayout
+                {
+                    ToolButton
+                    {
+                        text: qsTr("Add music files")
+                        iconSource: "qrc:/imageaudio/plus-32.png"
+                        onClicked: addingMusicDialog.open()
+
+                        FileDialog
+                        {
+                            id: addingMusicDialog
+                            //folder : musicUrl
+                            title: qsTr("Open audio files")
+                            nameFilters: [qsTr("MP3 files (*.mp3)"), qsTr("All files (*.*)")]
+                            selectMultiple: true
+                            onAccepted:
+                            {
+                                var file_protocol = "file:///"
+                                for (var i = 0; i < fileUrls.length; i++)
+                                {
+                                    var path = fileUrls[i].toString()
+                                    path = path.substring(file_protocol.length, path.length)
+                                    playlistModel.append( { "path" : path, } )
+                                }
+                            }
+                        }
+                    }
+
+                }
+                Component
+                {
+                    id: playlistDelegate
+
+                    Item
+                    {
+                        width: parent.width
+                        height: 30
+
+                        Rectangle
+                        {
+                            id : rectItem
+                            anchors.fill: parent
+                            color: "#33000000"
+                            radius: 5
+                            visible: mouse.pressed
+                        }
+
+                        Text {
+                            x: 10
+                            y: 10
+                            text: path
+                        }
+
+                        MouseArea
+                        {
+                            id: mouse
+                            anchors.fill: parent
+                            onClicked: playlistView.currentIndex = index
+                            onDoubleClicked: mediaPlayer.source = path
+                        }
+                    }
+                }
+                Component
+                {
+                    id: playlistHighlight
+                    Rectangle
+                    {
+                        color: "gray"
+                        radius: 5
+                        y: playlistView.currentItem.y
+                        Behavior on y
+                        {
+                            SpringAnimation
+                            {
+                                spring: 3
+                                damping: 0.2
+                            }
+                        }
+                    }
+                }
+                ListModel
+                {
+                    id: playlistModel
+                }
+            }
+
+        }
+
+    }
